@@ -118,27 +118,36 @@ func (m gameState) Update(msg tea.Msg) (gameState, tea.Cmd) {
 
 func (m *gameState) generateBombs(firstX, firstY int) {
 	type pos struct{ x, y int }
-	var flat []pos
+	var dangerZone []pos
+	var safeZone []pos
 
-	for y := range m.height {
-		for x := range m.width {
-			if x >= firstX-1 && x <= firstX+1 && y >= firstY-1 && y <= firstY+1 {
+	for y := 0; y < m.height; y++ {
+		for x := 0; x < m.width; x++ {
+			if x == firstX && y == firstY {
 				continue
 			}
-			flat = append(flat, pos{x, y})
+			if x >= firstX-1 && x <= firstX+1 && y >= firstY-1 && y <= firstY+1 {
+				safeZone = append(safeZone, pos{x, y})
+			} else {
+				dangerZone = append(dangerZone, pos{x, y})
+			}
 		}
 	}
 
-	rand.Shuffle(len(flat), func(i, j int) {
-		flat[i], flat[j] = flat[j], flat[i]
+	rand.Shuffle(len(dangerZone), func(i, j int) {
+		dangerZone[i], dangerZone[j] = dangerZone[j], dangerZone[i]
+	})
+	rand.Shuffle(len(safeZone), func(i, j int) {
+		safeZone[i], safeZone[j] = safeZone[j], safeZone[i]
 	})
 
-	// Place bombs in the first N shuffled positions
-	for i := 0; i < m.numBombs && i < len(flat); i++ {
-		p := flat[i]
+	allPotentials := append(dangerZone, safeZone...)
+	allPotentials = append(allPotentials, pos{firstX, firstY})
+
+	for i := 0; i < m.numBombs && i < len(allPotentials); i++ {
+		p := allPotentials[i]
 		m.grid[p.y][p.x].isBomb = true
 	}
-
 
 	for y := range m.height {
 		for x := range m.width {
@@ -176,12 +185,27 @@ func (m *gameState) reveal(x, y int) {
 
 	if m.grid[y][x].isBomb {
 		m.status = lost
+		for y := range m.height {
+			for x := range m.width {
+				m.grid[y][x].revealed = true
+			}
+		}
 		return
 	}
 
 	m.cellsLeft--
 	if m.cellsLeft == 0 {
 		m.status = won
+		for y := range m.height {
+			for x := range m.width {
+				if m.grid[y][x].isBomb == true {
+					m.grid[y][x].flagged = true
+				} else {
+					m.grid[y][x].revealed = true
+				}
+			}
+		}
+		m.numBombs = 0
 		return
 	}
 
