@@ -2,9 +2,8 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"strings"
-	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -41,7 +40,7 @@ type gameState struct {
 
 func newGameState(width, height, numBombs int) gameState {
 	grid := make([][]cell, height)
-	for y := 0; y < height; y++ {
+	for y := range height {
 		grid[y] = make([]cell, width)
 	}
 	return gameState{
@@ -118,24 +117,34 @@ func (m gameState) Update(msg tea.Msg) (gameState, tea.Cmd) {
 }
 
 func (m *gameState) generateBombs(firstX, firstY int) {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	count := 0
-	for count < m.numBombs {
-		x := r.Intn(m.width)
-		y := r.Intn(m.height)
-		if (x == firstX && y == firstY) || m.grid[y][x].isBomb {
-			continue
-		}
-		m.grid[y][x].isBomb = true
-		count++
-	}
+	type pos struct{ x, y int }
+	var flat []pos
 
-	for y := 0; y < m.height; y++ {
-		for x := 0; x < m.width; x++ {
-			if m.grid[y][x].isBomb {
+	for y := range m.height {
+		for x := range m.width {
+			if x >= firstX-1 && x <= firstX+1 && y >= firstY-1 && y <= firstY+1 {
 				continue
 			}
-			m.grid[y][x].neighbors = m.countNeighbors(x, y)
+			flat = append(flat, pos{x, y})
+		}
+	}
+
+	rand.Shuffle(len(flat), func(i, j int) {
+		flat[i], flat[j] = flat[j], flat[i]
+	})
+
+	// Place bombs in the first N shuffled positions
+	for i := 0; i < m.numBombs && i < len(flat); i++ {
+		p := flat[i]
+		m.grid[p.y][p.x].isBomb = true
+	}
+
+
+	for y := range m.height {
+		for x := range m.width {
+			if !m.grid[y][x].isBomb {
+				m.grid[y][x].neighbors = m.countNeighbors(x, y)
+			}
 		}
 	}
 }
