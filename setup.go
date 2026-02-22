@@ -56,7 +56,7 @@ func (m setupModel) Update(msg tea.Msg) (setupModel, tea.Cmd) {
 				if m.cursor < len(presets)-1 {
 					m.cursor++
 				}
-			case "enter":
+			case "enter", "l", "d", "right":
 				p := presets[m.cursor]
 				if p.name == "Custom" {
 					m.subStage = 1
@@ -108,31 +108,35 @@ func (m setupModel) Update(msg tea.Msg) (setupModel, tea.Cmd) {
 func (m setupModel) View() string {
 	var body strings.Builder
 
+	titleStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("255")).Bold(true).MarginBottom(1)
+	activeStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("81")).Bold(true)
+	inactiveStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("248"))
+	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("248")).MarginTop(2)
+
 	if m.subStage == 0 {
-		body.WriteString("Select Difficulty:\n\n")
+		body.WriteString(titleStyle.Render("SELECT DIFFICULTY"))
+		body.WriteString("\n")
 		for i, p := range presets {
-			cursor := "  "
-			style := lipgloss.NewStyle()
 			if m.cursor == i {
-				cursor = "> "
-				style = lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Bold(true)
+				body.WriteString(activeStyle.Render(fmt.Sprintf("> %s", p.name)) + "\n")
+			} else {
+				body.WriteString(inactiveStyle.Render(p.name) + "\n")
 			}
-			body.WriteString(fmt.Sprintf("%s%s\n", cursor, style.Render(p.name)))
 		}
-		body.WriteString("\nArrows/WASD to move, Enter to select.")
+		body.WriteString(helpStyle.Render("Arrows/WASD to move • Enter to select"))
 	} else {
-		body.WriteString("Custom Dimensions:\n\n")
-		body.WriteString(fmt.Sprintf("Width  : %d\n", m.width))
-		body.WriteString(fmt.Sprintf("Height : %d\n", m.height))
-		body.WriteString(fmt.Sprintf("Bombs  : %d\n", m.bombs))
-		body.WriteString("\nArrows/WASD to adjust, +/- for bombs.\nEnter to start, Esc to go back.")
+		body.WriteString(titleStyle.Render("CUSTOM CONFIGURATION"))
+		body.WriteString("\n")
+		
+		labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("81")).Width(12)
+		valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("255")).Bold(true)
+
+		body.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("WIDTH"), valueStyle.Render(fmt.Sprintf("%d", m.width))))
+		body.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("HEIGHT"), valueStyle.Render(fmt.Sprintf("%d", m.height))))
+		body.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("MINES"), valueStyle.Render(fmt.Sprintf("%d", m.bombs))))
+		
+		body.WriteString(helpStyle.Render("Arrows/WASD to adjust • +/- for bombs\nEnter to start • Esc to go back"))
 	}
 
-	content := boardStyle.Render(body.String())
-
-	return lipgloss.JoinVertical(
-		lipgloss.Center,
-		titleStyle.Render("Minesweeper Setup"),
-		content,
-	)
+	return body.String()
 }

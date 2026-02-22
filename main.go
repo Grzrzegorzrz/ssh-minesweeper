@@ -18,6 +18,28 @@ import (
 	"github.com/charmbracelet/wish/logging"
 )
 
+var (
+	windowStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("81")).
+			Padding(0, 1)
+
+	headerStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("255")).
+			Bold(true)
+
+	navStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("248")).
+			Padding(1, 2)
+
+	activeNavStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("81")).
+			Bold(true).
+			Border(lipgloss.NormalBorder(), false, false, true, false).
+			BorderForeground(lipgloss.Color("81")).
+			Padding(1, 2)
+)
+
 const (
 	host = "0.0.0.0"
 	port = 2222
@@ -42,8 +64,16 @@ func (a appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.height = msg.Height
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+c", "q":
+		case "ctrl+c":
 			return a, tea.Quit
+		case "q", "esc":
+			if a.stage == 1 {
+				a.stage = 0
+				a.setup.done = false
+				return a, nil
+			} else {
+				return a, tea.Quit
+			}
 		}
 	}
 
@@ -53,6 +83,8 @@ func (a appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if a.setup.done {
 			a.game = newGameState(a.setup.width, a.setup.height, a.setup.bombs)
 			a.stage = 1
+			// Return a tick command to start the timer if firstClick is handled
+			// Actually tick is started on first click in game.go
 		}
 		return a, cmd
 	}
@@ -64,22 +96,37 @@ func (a appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (a appModel) View() string {
 	var content string
+
 	if a.stage == 0 {
 		content = a.setup.View()
 	} else {
 		content = a.game.View()
 	}
 
+	// App title
+	title := headerStyle.Render("Minesweeper Via SSH!")
+
+	fullView := lipgloss.JoinVertical(
+		lipgloss.Center,
+		title,
+		"\n",
+		content,
+	)
+
+	// Wrap in window border
+	windowed := windowStyle.Render(fullView)
+
 	if a.width == 0 || a.height == 0 {
-		return content
+		return windowed
 	}
 
+	// Dynamic centering
 	return lipgloss.Place(
 		a.width,
 		a.height,
 		lipgloss.Center,
 		lipgloss.Center,
-		content,
+		windowed,
 	)
 }
 
