@@ -11,6 +11,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
 	"github.com/charmbracelet/wish/bubbletea"
@@ -23,9 +24,11 @@ const (
 )
 
 type appModel struct {
-	setup setupModel
-	game  gameState
-	stage int // 0 = setup, 1 = game
+	setup  setupModel
+	game   gameState
+	stage  int // 0 = setup, 1 = game
+	width  int
+	height int
 }
 
 func (a appModel) Init() tea.Cmd {
@@ -34,6 +37,9 @@ func (a appModel) Init() tea.Cmd {
 
 func (a appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		a.width = msg.Width
+		a.height = msg.Height
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
@@ -57,10 +63,24 @@ func (a appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (a appModel) View() string {
+	var content string
 	if a.stage == 0 {
-		return a.setup.View()
+		content = a.setup.View()
+	} else {
+		content = a.game.View()
 	}
-	return a.game.View()
+
+	if a.width == 0 || a.height == 0 {
+		return content
+	}
+
+	return lipgloss.Place(
+		a.width,
+		a.height,
+		lipgloss.Center,
+		lipgloss.Center,
+		content,
+	)
 }
 
 func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {

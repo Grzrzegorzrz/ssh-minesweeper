@@ -106,12 +106,10 @@ func (m setupModel) Update(msg tea.Msg) (setupModel, tea.Cmd) {
 }
 
 func (m setupModel) View() string {
-	var b strings.Builder
-	b.WriteString(titleStyle.Render("Minesweeper Setup"))
-	b.WriteString("\n\n")
+	var body strings.Builder
 
 	if m.subStage == 0 {
-		b.WriteString("Select Difficulty:\n\n")
+		body.WriteString("Select Difficulty:\n\n")
 		for i, p := range presets {
 			cursor := "  "
 			style := lipgloss.NewStyle()
@@ -119,16 +117,22 @@ func (m setupModel) View() string {
 				cursor = "> "
 				style = lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Bold(true)
 			}
-			b.WriteString(fmt.Sprintf("%s%s\n", cursor, style.Render(p.name)))
+			body.WriteString(fmt.Sprintf("%s%s\n", cursor, style.Render(p.name)))
 		}
-		b.WriteString("\nArrows/WASD to move, Enter to select.")
+		body.WriteString("\nArrows/WASD to move, Enter to select.")
 	} else {
-		b.WriteString("Custom Dimensions:\n\n")
-		b.WriteString("Use arrows/wasd to set dimensions, +/- for bombs. Enter to start.\nEsc to go back.\n\n")
-		b.WriteString(fmt.Sprintf("Width  : %d\n", m.width))
-		b.WriteString(fmt.Sprintf("Height : %d\n", m.height))
-		b.WriteString(fmt.Sprintf("Bombs  : %d\n", m.bombs))
+		body.WriteString("Custom Dimensions:\n\n")
+		body.WriteString(fmt.Sprintf("Width  : %d\n", m.width))
+		body.WriteString(fmt.Sprintf("Height : %d\n", m.height))
+		body.WriteString(fmt.Sprintf("Bombs  : %d\n", m.bombs))
+		body.WriteString("\nArrows/WASD to adjust, +/- for bombs.\nEnter to start, Esc to go back.")
 	}
 
-	return boardStyle.Render(b.String())
+	content := boardStyle.Render(body.String())
+
+	return lipgloss.JoinVertical(
+		lipgloss.Center,
+		titleStyle.Render("Minesweeper Setup"),
+		content,
+	)
 }
