@@ -69,6 +69,8 @@ func newGameState(width, height, numBombs int) gameState {
 		triggeredY:  -1,
 		timeElapsed: 0,
 		timerActive: false,
+		cursorX:    width / 2 - 1,
+		cursorY:    height / 2 - 1,
 	}
 }
 
